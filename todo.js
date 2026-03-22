@@ -1,6 +1,7 @@
 export const TASKS_STORAGE_KEY = "cgx.todo.tasks";
 
 const normaliseText = (text) => String(text ?? "").trim();
+let fallbackIdCounter = 0;
 
 const isTaskRecord = (value) =>
   Boolean(
@@ -12,15 +13,19 @@ const isTaskRecord = (value) =>
   );
 
 const defaultCreateId = () =>
-  globalThis.crypto?.randomUUID?.() ?? `task-${Date.now().toString(36)}`;
+  globalThis.crypto?.randomUUID?.() ??
+  `task-${Date.now().toString(36)}-${(fallbackIdCounter++).toString(36)}`;
 
 const sanitiseTasks = (tasks) =>
   Array.isArray(tasks)
-    ? tasks.filter(isTaskRecord).map((task) => ({
-        id: task.id,
-        text: normaliseText(task.text),
-        completed: task.completed
-      }))
+    ? tasks
+        .filter(isTaskRecord)
+        .map((task) => ({
+          id: task.id,
+          text: normaliseText(task.text),
+          completed: task.completed
+        }))
+        .filter((task) => task.text.length > 0)
     : [];
 
 export const addTask = (tasks, text, createId = defaultCreateId) => {
@@ -53,19 +58,31 @@ export const deleteTask = (tasks, taskId) =>
 export const saveTasks = (storage, tasks) => {
   const nextTasks = sanitiseTasks(tasks);
 
-  storage.setItem(TASKS_STORAGE_KEY, JSON.stringify(nextTasks));
+  try {
+    storage.setItem(TASKS_STORAGE_KEY, JSON.stringify(nextTasks));
 
-  return nextTasks;
+    return {
+      tasks: nextTasks,
+      persisted: true,
+      error: null
+    };
+  } catch (error) {
+    return {
+      tasks: nextTasks,
+      persisted: false,
+      error
+    };
+  }
 };
 
 export const loadTasks = (storage) => {
-  const rawTasks = storage.getItem(TASKS_STORAGE_KEY);
-
-  if (!rawTasks) {
-    return [];
-  }
-
   try {
+    const rawTasks = storage.getItem(TASKS_STORAGE_KEY);
+
+    if (!rawTasks) {
+      return [];
+    }
+
     const parsedTasks = JSON.parse(rawTasks);
 
     return Array.isArray(parsedTasks) ? sanitiseTasks(parsedTasks) : [];
@@ -73,4 +90,3 @@ export const loadTasks = (storage) => {
     return [];
   }
 };
-

@@ -7,6 +7,9 @@ const countLabel = (tasks) => {
   return `${tasks.length} ${taskLabel} / ${completedCount} done`;
 };
 
+const truncateForAria = (text, limit = 48) =>
+  text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
+
 const createTaskItem = (document, task) => {
   const item = document.createElement("li");
   item.className = "task-item";
@@ -22,7 +25,7 @@ const createTaskItem = (document, task) => {
   checkbox.checked = task.completed;
   checkbox.dataset.action = "toggle";
   checkbox.dataset.taskId = task.id;
-  checkbox.setAttribute("aria-label", `Mark ${task.text} as complete`);
+  checkbox.setAttribute("aria-label", `Mark ${truncateForAria(task.text)} as complete`);
 
   const text = document.createElement("span");
   text.className = "task-text";
@@ -35,7 +38,7 @@ const createTaskItem = (document, task) => {
   deleteButton.className = "delete-button";
   deleteButton.dataset.action = "delete";
   deleteButton.dataset.taskId = task.id;
-  deleteButton.setAttribute("aria-label", `Delete ${task.text}`);
+  deleteButton.setAttribute("aria-label", `Delete ${truncateForAria(task.text)}`);
   deleteButton.textContent = "Delete";
 
   item.append(label, deleteButton);
@@ -61,8 +64,21 @@ export const initialiseApp = (documentRef = document, storage = window.localStor
     feedback.dataset.tone = tone;
   };
 
-  const persistAndRender = () => {
-    tasks = saveTasks(storage, tasks);
+  const persistAndRender = (successMessage, tone = "neutral") => {
+    const result = saveTasks(storage, tasks);
+    tasks = result.tasks;
+
+    if (successMessage) {
+      if (result.persisted) {
+        setFeedback(successMessage, tone);
+      } else {
+        setFeedback(
+          `${successMessage} Browser storage is unavailable, so this change will not survive refresh.`,
+          "error"
+        );
+      }
+    }
+
     render();
   };
 
@@ -90,8 +106,7 @@ export const initialiseApp = (documentRef = document, storage = window.localStor
       const result = addTask(tasks, input.value);
       tasks = result.tasks;
       input.value = "";
-      setFeedback(`Added "${result.task.text}".`, "success");
-      persistAndRender();
+      persistAndRender(`Added "${result.task.text}".`, "success");
       input.focus();
     } catch (error) {
       setFeedback(error.message, "error");
@@ -107,8 +122,7 @@ export const initialiseApp = (documentRef = document, storage = window.localStor
     }
 
     tasks = toggleTask(tasks, target.dataset.taskId);
-    setFeedback("Task updated.", "neutral");
-    persistAndRender();
+    persistAndRender("Task updated.");
   });
 
   list.addEventListener("click", (event) => {
@@ -119,8 +133,7 @@ export const initialiseApp = (documentRef = document, storage = window.localStor
     }
 
     tasks = deleteTask(tasks, target.dataset.taskId);
-    setFeedback("Task removed.", "neutral");
-    persistAndRender();
+    persistAndRender("Task removed.");
   });
 
   render();
@@ -139,4 +152,3 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
     initialiseApp();
   }
 }
-
