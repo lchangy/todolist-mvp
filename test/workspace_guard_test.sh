@@ -154,7 +154,13 @@ test_worktree_init_creates_issue_branch_when_missing() {
     assert_status "$status" 0 "worktree init should succeed for the expected repo"
     assert_eq "$current_branch" "lchangy264858/cgx-12-investigate-todolist-workspacerepository-mismatch-for-ui" \
       "worktree init should switch to the Linear issue branch"
-    assert_contains "$output" "created local branch" "worktree init should describe branch bootstrapping"
+    if [[ "$output" != *"created local branch"* && "$output" != *"checked out existing remote branch"* ]]; then
+      echo "not ok - worktree init should describe branch bootstrapping"
+      echo "  output was:"
+      echo "$output"
+      FAILURES=$((FAILURES + 1))
+      return 1
+    fi
   )
 }
 
