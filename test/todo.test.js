@@ -1,0 +1,106 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+let todoModule = {};
+
+try {
+  todoModule = await import("../todo.js");
+} catch {
+  todoModule = {};
+}
+
+const { TASKS_STORAGE_KEY, addTask, deleteTask, loadTasks, saveTasks, toggleTask } =
+  todoModule;
+
+const createStorage = (initial = {}) => {
+  const state = { ...initial };
+
+  return {
+    getItem(key) {
+      return Object.prototype.hasOwnProperty.call(state, key) ? state[key] : null;
+    },
+    setItem(key, value) {
+      state[key] = String(value);
+    },
+    dump() {
+      return { ...state };
+    }
+  };
+};
+
+test("addTask trims input and appends a new incomplete task", () => {
+  assert.equal(typeof addTask, "function");
+
+  const { task, tasks } = addTask([], "  Buy oat milk  ", () => "task-1");
+
+  assert.deepEqual(task, {
+    id: "task-1",
+    text: "Buy oat milk",
+    completed: false
+  });
+  assert.deepEqual(tasks, [task]);
+});
+
+test("addTask rejects empty or whitespace-only submissions", () => {
+  assert.equal(typeof addTask, "function");
+
+  assert.throws(() => addTask([], "   ", () => "task-1"), /empty/i);
+});
+
+test("toggleTask flips the completion state for the matching task", () => {
+  assert.equal(typeof toggleTask, "function");
+
+  const tasks = [
+    { id: "task-1", text: "Buy oat milk", completed: false },
+    { id: "task-2", text: "Review notes", completed: true }
+  ];
+
+  assert.deepEqual(toggleTask(tasks, "task-1"), [
+    { id: "task-1", text: "Buy oat milk", completed: true },
+    { id: "task-2", text: "Review notes", completed: true }
+  ]);
+});
+
+test("deleteTask removes the matching task and preserves the rest", () => {
+  assert.equal(typeof deleteTask, "function");
+
+  const tasks = [
+    { id: "task-1", text: "Buy oat milk", completed: false },
+    { id: "task-2", text: "Review notes", completed: true }
+  ];
+
+  assert.deepEqual(deleteTask(tasks, "task-1"), [
+    { id: "task-2", text: "Review notes", completed: true }
+  ]);
+});
+
+test("saveTasks writes the task list to localStorage using the shared key", () => {
+  assert.equal(typeof saveTasks, "function");
+  assert.equal(typeof TASKS_STORAGE_KEY, "string");
+
+  const storage = createStorage();
+  const tasks = [{ id: "task-1", text: "Buy oat milk", completed: false }];
+
+  saveTasks(storage, tasks);
+
+  assert.equal(storage.dump()[TASKS_STORAGE_KEY], JSON.stringify(tasks));
+});
+
+test("loadTasks restores valid tasks and falls back safely for malformed data", () => {
+  assert.equal(typeof loadTasks, "function");
+  assert.equal(typeof TASKS_STORAGE_KEY, "string");
+
+  const validStorage = createStorage({
+    [TASKS_STORAGE_KEY]: JSON.stringify([
+      { id: "task-1", text: "Buy oat milk", completed: false }
+    ])
+  });
+  const invalidStorage = createStorage({
+    [TASKS_STORAGE_KEY]: "{\"bad\":true}"
+  });
+
+  assert.deepEqual(loadTasks(validStorage), [
+    { id: "task-1", text: "Buy oat milk", completed: false }
+  ]);
+  assert.deepEqual(loadTasks(invalidStorage), []);
+});

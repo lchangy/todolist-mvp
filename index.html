@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiet List</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <aside class="intro-panel" aria-label="Application introduction">
+        <p class="eyebrow">Quiet List</p>
+        <h1>One calm place for the tasks that matter today.</h1>
+        <p class="intro-copy">
+          Add a task, tick it off, and keep your list safely in this browser between refreshes.
+        </p>
+        <div class="intro-note">
+          <span class="note-kicker">Stored locally</span>
+          <p>Your tasks stay on this device using built-in browser storage.</p>
+        </div>
+      </aside>
+
+      <main class="task-panel">
+        <section class="task-panel-inner" aria-labelledby="task-heading">
+          <div class="panel-header">
+            <div>
+              <p class="section-label">Daily board</p>
+              <h2 id="task-heading">What needs your attention?</h2>
+            </div>
+            <p class="task-count" data-task-count>0 tasks / 0 done</p>
+          </div>
+
+          <form class="task-form" data-task-form novalidate>
+            <label class="task-field">
+              <span class="sr-only">Task name</span>
+              <input
+                type="text"
+                name="task"
+                data-task-input
+                placeholder="Add a task..."
+                autocomplete="off"
+              />
+            </label>
+            <button type="submit" class="add-button">Add task</button>
+          </form>
+
+          <p class="form-message" data-task-feedback role="status" aria-live="polite"></p>
+
+          <ul class="task-list" data-task-list aria-live="polite"></ul>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
+
